@@ -9,7 +9,6 @@ WEB_APP_URL = 'https://bekbolat00.github.io/sun-app/'
 
 app = Flask(__name__)
 
-# Функция с "прослушкой" от твоего друга
 def notify_admin(first_name, username_str, user_id):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     text = f"🚨 *Новый запуск бота!*\n\nИмя: {first_name}\nНик: {username_str}\nID для таблицы: `{user_id}`\n\n_(Нажми на цифры ID, чтобы скопировать)_"
@@ -17,17 +16,15 @@ def notify_admin(first_name, username_str, user_id):
     
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-    
     try:
-        with urllib.request.urlopen(req, timeout=5) as response:
-            # Если всё прошло успешно, увидим статус 200
-            print(f"ОТВЕТ ТЕЛЕГРАМА (Сана): {response.status} {response.read().decode()}")
+        urllib.request.urlopen(req, timeout=5)
     except Exception as e:
-        # Если Телеграм или Vercel ругнулись, увидим точную причину
-        print(f"ОШИБКА ОТПРАВКИ (Сана): {e}")
+        print(f"Ошибка админу: {e}")
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+# МАГИЯ: Ловим ВООБЩЕ ВСЕ пути (и /, и /api, и любые другие)
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+@app.route('/<path:path>', methods=['GET', 'POST'])
+def index(path):
     if request.method == 'POST':
         try:
             data = request.json
@@ -40,10 +37,10 @@ def index():
                     username = msg["from"].get("username", "")
                     username_str = f"@{username}" if username else "скрыт"
                     
-                    # 1. Отправляем Сане (через функцию с логами)
+                    # 1. Пишем Сане
                     notify_admin(first_name, username_str, user_id)
                     
-                    # 2. Отвечаем тебе прямо в теле вебхука (безотказный метод)
+                    # 2. Моментально отвечаем юзеру
                     return jsonify({
                         "method": "sendMessage",
                         "chat_id": chat_id,
@@ -55,8 +52,8 @@ def index():
                         }
                     })
         except Exception as e:
-            print(f"ОШИБКА КОДА: {e}")
+            print(f"Ошибка: {e}")
             
         return 'OK', 200
     else:
-        return '<h1>SUN Bot is alive! 🚀</h1>', 200
+        return '<h1>SUN Bot API работает на 100%! 🚀</h1>', 200
