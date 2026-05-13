@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 
 TOKEN = os.environ.get('BOT_TOKEN', '').strip()
 ADMIN_ID = os.environ.get('ADMIN_ID', '').strip()
-WEB_APP_URL = 'https://bekbolat00.github.io/sun-app/'
+WEB_APP_URL = 'https://bekbolat00.github.io/sun-bot-vercel'
 
 app = Flask(__name__)
 
