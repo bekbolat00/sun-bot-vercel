@@ -1,67 +1,62 @@
 import os
 import json
 import urllib.request
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
-# Достаем ключи из Vercel
 TOKEN = os.environ.get('BOT_TOKEN', '').strip()
 ADMIN_ID = os.environ.get('ADMIN_ID', '').strip()
 WEB_APP_URL = 'https://bekbolat00.github.io/sun-app/'
 
 app = Flask(__name__)
 
-# Прямая функция-пушка для отправки в обход библиотек
-def send_telegram_message(chat_id, text, reply_markup=None):
+# Функция с "прослушкой" от твоего друга
+def notify_admin(first_name, username_str, user_id):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-        
+    text = f"🚨 *Новый запуск бота!*\n\nИмя: {first_name}\nНик: {username_str}\nID для таблицы: `{user_id}`\n\n_(Нажми на цифры ID, чтобы скопировать)_"
+    payload = {"chat_id": ADMIN_ID, "text": text, "parse_mode": "Markdown"}
+    
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
     
     try:
-        # Сервер Vercel будет ждать, пока Телеграм не примет сообщение
-        urllib.request.urlopen(req, timeout=5)
-        print(f"Успешно отправлено в чат {chat_id}")
+        with urllib.request.urlopen(req, timeout=5) as response:
+            # Если всё прошло успешно, увидим статус 200
+            print(f"ОТВЕТ ТЕЛЕГРАМА (Сана): {response.status} {response.read().decode()}")
     except Exception as e:
-        print(f"Ошибка API Телеграма: {e}")
+        # Если Телеграм или Vercel ругнулись, увидим точную причину
+        print(f"ОШИБКА ОТПРАВКИ (Сана): {e}")
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         try:
             data = request.json
-            if data and "message" in data and "text" in data["message"]:
-                text = data["message"]["text"]
-                chat_id = data["message"]["chat"]["id"]
-                
-                if text == "/start":
-                    user_id = data["message"]["from"].get("id", "")
-                    first_name = data["message"]["from"].get("first_name", "Ученик")
-                    username = data["message"]["from"].get("username", "")
+            if data and "message" in data:
+                msg = data["message"]
+                if "text" in msg and msg["text"] == "/start":
+                    chat_id = msg["chat"]["id"]
+                    user_id = msg["from"].get("id", "")
+                    first_name = msg["from"].get("first_name", "Ученик")
+                    username = msg["from"].get("username", "")
                     username_str = f"@{username}" if username else "скрыт"
                     
-                    # 1. Отправляем Сане
-                    admin_text = f"🚨 *Новый запуск бота!*\n\nИмя: {first_name}\nНик: {username_str}\nID для таблицы: `{user_id}`\n\n_(Нажми на цифры ID, чтобы скопировать)_"
-                    send_telegram_message(ADMIN_ID, admin_text)
+                    # 1. Отправляем Сане (через функцию с логами)
+                    notify_admin(first_name, username_str, user_id)
                     
-                    # 2. Отправляем Пользователю
-                    markup = {
-                        "inline_keyboard": [[
-                            {"text": "⚡️ Открыть SUN App", "web_app": {"url": WEB_APP_URL}}
-                        ]]
-                    }
-                    user_text = "Добро пожаловать в SUN! Твоя база знаний готова к работе 👇"
-                    send_telegram_message(chat_id, user_text, reply_markup=markup)
-                    
+                    # 2. Отвечаем тебе прямо в теле вебхука (безотказный метод)
+                    return jsonify({
+                        "method": "sendMessage",
+                        "chat_id": chat_id,
+                        "text": "Добро пожаловать в SUN! Твоя база знаний готова к работе 👇",
+                        "reply_markup": {
+                            "inline_keyboard": [[
+                                {"text": "⚡️ Открыть SUN App", "web_app": {"url": WEB_APP_URL}}
+                            ]]
+                        }
+                    })
         except Exception as e:
-            print(f"Ошибка кода: {e}")
+            print(f"ОШИБКА КОДА: {e}")
             
         return 'OK', 200
     else:
-        return '<h1>SUN Serverless Bot работает! 🚀</h1>', 200
+        return '<h1>SUN Bot is alive! 🚀</h1>', 200
