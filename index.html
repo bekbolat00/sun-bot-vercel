@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SUN App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --sun-yellow: #FFB000; }
+        body { background-color: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; margin: 0; }
+        .screen { display: none; min-height: 100vh; padding-bottom: 120px; }
+        .screen.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card-premium { background: linear-gradient(145deg, #141414 0%, #0a0a0c 100%); border: 1px solid #1a1a1c; transition: all 0.2s ease; position: relative; overflow: hidden; }
+        .card-premium:active { transform: scale(0.96); border-color: var(--sun-yellow); }
+        .icon-container { border: 1px solid rgba(255, 176, 0, 0.2); box-shadow: 0 0 15px rgba(255, 176, 0, 0.15); }
+        .progress-card { background: #111; border: 1px solid #1a1a1c; border-radius: 16px; padding: 16px; }
+        .progress-fill { height: 100%; background: var(--sun-yellow); border-radius: 10px; transition: width 0.5s ease; }
+        .tag-sun { background: rgba(255, 176, 0, 0.1); color: var(--sun-yellow); font-size: 10px; font-weight: bold; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); border-top: 1px solid #1a1a1c; display: flex; justify-content: space-around; padding: 12px 0 32px; z-index: 1000; transition: transform 0.3s ease; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; color: #555; }
+        .nav-item.active { color: var(--sun-yellow); }
+        .footer-btns { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); padding: 15px 20px 35px; border-top: 1px solid #1a1a1c; z-index: 2000; display: flex; gap: 10px; }
+        .btn-main { background: #fff; color: #000; font-weight: 900; padding: 16px; border-radius: 14px; text-align: center; text-transform: uppercase; cursor: pointer; }
+        .btn-outline { border: 1px solid #333; color: #fff; font-weight: 900; padding: 16px; border-radius: 14px; text-align: center; text-transform: uppercase; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;}
+        .skeleton { background: linear-gradient(90deg, #141414 25%, #1a1a1c 50%, #141414 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+        @keyframes loading { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="pt-6">
+
+    <div id="home-screen" class="screen px-5">
+        <div class="flex flex-col items-center mb-8">
+            <h1 class="text-5xl font-black tracking-widest italic">SUN</h1>
+            <p class="text-[10px] font-bold tracking-[0.4em] text-[#FFB000]">INFOBUSINESS</p>
+        </div>
+        <div class="bg-[#141414] border border-[#1a1a1c] rounded-xl p-3 mb-8 flex items-center">
+            <span class="text-gray-500 mr-2">🔍</span>
+            <input type="text" placeholder="Поиск по базе знаний..." class="bg-transparent border-none text-white w-full focus:outline-none placeholder-gray-600 text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div onclick="openCategory('Эфир', 'Эфиры')" class="card-premium rounded-2xl p-5 h-40 flex flex-col justify-between cursor-pointer"><div class="icon-container w-14 h-14 rounded-xl overflow-hidden"><img src="efiry.jpg" class="w-full h-full object-cover"></div><div class="text-lg font-black uppercase italic mt-auto">Эфиры</div></div>
+            <div onclick="openCategory('Курс', 'Курсы')" class="card-premium rounded-2xl p-5 h-40 flex flex-col justify-between cursor-pointer"><div class="icon-container w-14 h-14 rounded-xl overflow-hidden"><img src="kursy.jpg" class="w-full h-full object-cover"></div><div class="text-lg font-black uppercase italic mt-auto">Курсы</div></div>
+            <div onclick="openCategory('Разбор', 'Разборы')" class="card-premium rounded-2xl p-5 h-40 flex flex-col justify-between cursor-pointer"><div class="icon-container w-14 h-14 rounded-xl overflow-hidden"><img src="razbory.jpg" class="w-full h-full object-cover"></div><div class="text-lg font-black uppercase italic mt-auto">Разборы</div></div>
+            <div onclick="openCategory('Книг', 'Книги')" class="card-premium rounded-2xl p-5 h-40 flex flex-col justify-between cursor-pointer"><div class="icon-container w-14 h-14 rounded-xl overflow-hidden"><img src="knigi.jpg" class="w-full h-full object-cover"></div><div class="text-lg font-black uppercase italic mt-auto">Книги</div></div>
+        </div>
+
+        <div class="bg-[#141414] border border-[#1a1a1c] rounded-2xl w-full flex items-center justify-between p-4 mb-10 active:bg-gray-900 transition-colors cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" onclick="openCategory('Инфо', 'Полезная информация')">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
+            <span class="text-2xl">💡</span> 
+        </div>
+        <div>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider italic">Полезная информация</h3>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Инструкции и ссылки</p>
+        </div>
+    </div>
+    <div class="text-[#FFB000] font-black text-xl mr-2">→</div>
+</div>
+
+        <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 ml-1 italic">Что ты хочешь заманьячить?</h3>
+        <div id="home-progress-list" class="grid grid-cols-2 gap-3"><div class="skeleton h-24 rounded-2xl opacity-20"></div><div class="skeleton h-24 rounded-2xl opacity-20"></div></div>
+    </div>
+
+    <div id="subcat-screen" class="screen px-5">
+        <h2 id="subcat-title" class="text-xl font-black uppercase text-center mb-8 mt-4 italic">Разделы</h2>
+        <div id="subcat-list" class="space-y-0"></div>
+    </div>
+
+    <div id="club-screen" class="screen px-5">
+        <h2 class="text-xl font-black uppercase text-center mb-8 mt-4 italic tracking-widest">СООБЩЕСТВО</h2>
+        <div class="card-premium rounded-[24px] p-6 mb-8 border-yellow-500/30">
+            <h3 class="text-xl font-black mb-1 uppercase italic">SUN CLUB</h3>
+            <p class="text-sm text-gray-400 mb-6 italic">Твой доступ к закрытым знаниям и чатам активен.</p>
+            <div onclick="tg.openLink('https://pay.kaspi.kz/pay/0o2tyjk1')" class="w-full bg-[#FFB000] text-black text-center font-bold py-4 rounded-xl uppercase text-xs tracking-widest cursor-pointer">Продлить доступ</div>
+        </div>
+        <div class="bg-[#141414] border border-[#1a1a1c] rounded-[24px] p-6">
+            <h3 class="text-sm font-black text-[#FFB000] mb-5 uppercase tracking-widest italic flex items-center"><span class="mr-2 text-lg">⚖️</span> Правила сообщества</h3>
+            <ul class="text-[13px] text-gray-300 space-y-4 font-medium italic">
+                <li class="leading-relaxed"><strong class="text-white uppercase">1. Уважение.</strong> Никакой токсичности. Мы здесь, чтобы расти вместе.</li>
+                <li class="leading-relaxed"><strong class="text-white uppercase">2. Без спама.</strong> Самореклама запрещена.</li>
+                <li class="leading-relaxed"><strong class="text-white uppercase">3. Конфиденциальность.</strong> Все разборы и цифры остаются внутри.</li>
+                <li class="leading-relaxed"><strong class="text-white uppercase">4. Вклад.</strong> Делись опытом — так ты растешь быстрее.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="favorites-screen" class="screen px-5">
+        <h2 class="text-xl font-black uppercase text-center mb-8 mt-4 italic tracking-widest">ИЗБРАННОЕ</h2>
+        <div id="favorites-list" class="space-y-6"></div>
+    </div>
+
+    <div id="profile-screen" class="screen px-5">
+        <h2 class="text-xl font-black uppercase text-center mb-8 mt-4 italic tracking-widest">ПРОФИЛЬ</h2>
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-16 h-16 rounded-full border border-[#FFB000]/50 bg-[#141414] flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(255,176,0,0.2)]">🥷</div>
+            <div>
+                <h2 id="profile-name" class="text-2xl font-black italic uppercase">Загрузка...</h2>
+                <div class="flex items-center text-[#FFB000] text-xs font-bold mt-1 uppercase tracking-wider"><span class="mr-1">⭐</span> Резидент клуба</div>
+            </div>
+        </div>
+        
+        <div class="card-premium rounded-[24px] p-6 mb-8 border-[#FFB000]/20 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#FFB000] opacity-10 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-start mb-8 relative z-10">
+                <h3 class="text-4xl font-black italic tracking-tighter text-[#FFB000] drop-shadow-md">SUN<br><span class="text-white">PASS</span></h3>
+                <div class="w-10 h-10 rounded-full bg-[#1a1a1c] border border-[#2a2a2c] flex items-center justify-center text-gray-500">›</div>
+            </div>
+            <div class="flex justify-between items-end relative z-10">
+                <div>
+                    <div id="sub-title" class="text-2xl font-bold text-white mb-1">Считаем...</div>
+                    <div id="sub-days" class="text-sm text-gray-400 font-medium">Обновляем данные</div>
+                </div>
+                <div id="user-points" class="bg-[#1a1a1c] border border-[#FFB000]/30 text-[#FFB000] font-black text-[10px] px-3 py-2 rounded-xl flex items-center gap-1 uppercase tracking-widest">
+                    <span class="text-lg">🏆</span> 0 баллов
+                </div>
+            </div>
+        </div>
+        
+        <div onclick="openMonthlyRecap()" class="bg-gradient-to-r from-[#141414] to-[#1a1a1c] border border-[#FFB000]/30 rounded-[20px] p-5 mb-8 flex items-center justify-between cursor-pointer relative overflow-hidden active:scale-95 transition-transform shadow-[0_0_20px_rgba(255,176,0,0.05)]">
+            <div class="absolute right-0 top-0 w-32 h-32 bg-[#FFB000] opacity-10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+            <div class="flex flex-col z-10">
+                <span class="text-[#FFB000] text-[10px] font-bold uppercase tracking-widest mb-1">Твоя аналитика</span>
+                <span id="recap-month-text" class="text-white font-black italic text-lg uppercase tracking-wide">Итоги месяца</span>
+            </div>
+            <div class="text-4xl z-10 drop-shadow-[0_0_15px_rgba(255,176,0,0.4)]">✨</div>
+        </div>
+        
+        <div onclick="showScreen('leaderboard-screen')" class="bg-[#141414] border border-[#1a1a1c] rounded-2xl p-4 mb-8 flex items-center justify-between cursor-pointer active:scale-95 transition-transform">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-neutral-900 border border-[#FFB000]/20 rounded-xl flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(255,176,0,0.05)]">👑</div>
+                <div>
+                    <div class="text-sm font-black uppercase italic text-white">Рейтинг клуба</div>
+                    <div id="user-rank" class="text-[10px] text-gray-500 font-bold uppercase mt-1">Твое место: --</div>
+                </div>
+            </div>
+            <div class="text-gray-600 font-bold">></div>
+        </div>
+
+        <div class="flex justify-between items-end mb-4 ml-1">
+            <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500 italic">Достижения</h3>
+            <span class="text-[9px] text-gray-600 font-bold uppercase">В процессе</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="bg-[#141414] border border-[#1a1a1c] rounded-2xl p-4 flex flex-col items-center justify-center opacity-40 grayscale"><span class="text-3xl mb-3">🔥</span><span class="text-[8px] font-bold text-center uppercase tracking-wider text-gray-400">Первая кровь</span></div>
+            <div class="bg-[#141414] border border-[#1a1a1c] rounded-2xl p-4 flex flex-col items-center justify-center opacity-40 grayscale"><span class="text-3xl mb-3">📚</span><span class="text-[8px] font-bold text-center uppercase tracking-wider text-gray-400">Книжный червь</span></div>
+            <div class="bg-[#141414] border border-[#1a1a1c] rounded-2xl p-4 flex flex-col items-center justify-center opacity-40 grayscale"><span class="text-3xl mb-3">🦈</span><span class="text-[8px] font-bold text-center uppercase tracking-wider text-gray-400">Акула продаж</span></div>
+        </div>
+    </div>
+
+    <div id="leaderboard-screen" class="screen px-5">
+        <div class="flex items-center justify-between mb-8 mt-4">
+            <div onclick="showScreen('profile-screen')" class="w-10 h-10 bg-[#141414] rounded-full flex items-center justify-center text-xl text-gray-400 cursor-pointer border border-[#1a1a1c] active:scale-95 transition-transform">‹</div>
+            <h2 class="text-xl font-black uppercase italic tracking-widest text-[#FFB000]">Рейтинг</h2>
+            <div class="w-10 h-10"></div>
+        </div>
+        
+        <div class="bg-gradient-to-b from-[#1a1a1c] to-[#0a0a0c] border border-[#FFB000]/20 rounded-[24px] pt-8 pb-0 px-2 mb-8 relative overflow-hidden shadow-[0_0_30px_rgba(255,176,0,0.1)]">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-[#FFB000] opacity-10 rounded-full blur-3xl"></div>
+            <div class="flex justify-between items-end relative z-10" id="top-3-podium"></div>
+        </div>
+
+        <div class="flex justify-between items-end mb-4 ml-1">
+            <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500 italic">Турнирная таблица</h3>
+            <span class="text-[9px] text-gray-600 font-bold uppercase">Обновляется онлайн</span>
+        </div>
+        <div id="leaderboard-list" class="space-y-3 mb-20"></div>
+    </div>
+
+    <div id="list-screen" class="screen px-5">
+        <h2 id="list-title" class="text-xl font-black uppercase text-center mb-6 mt-4 italic">Загрузка...</h2>
+        <div class="flex items-center mb-5 text-[13px] font-bold text-gray-400 cursor-pointer active:text-white transition-colors w-fit">Сначала новые <span class="ml-1 text-[10px]">▼</span></div>
+        <div id="items-list" class="space-y-6"></div>
+    </div>
+
+    <div id="detail-screen" class="screen">
+        <div id="detail-img" class="w-full h-80 bg-cover bg-center relative"><div id="fav-btn" class="absolute top-5 right-5 w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/20 cursor-pointer z-50">☆</div></div>
+        <div class="px-6 -mt-8 bg-black rounded-t-[32px] pt-8 relative z-10">
+            <h2 id="detail-title" class="text-2xl font-black mb-4 uppercase italic">Загрузка...</h2>
+            <div id="detail-desc" class="text-gray-400 text-sm leading-relaxed mb-32 whitespace-pre-wrap"></div>
+        </div>
+        <div class="footer-btns">
+            <div id="summary-btn" class="btn-outline w-1/3" onclick="tg.showAlert('Конспект скоро!')">Конспект</div>
+            <div id="watch-btn" class="btn-main w-2/3">Смотреть</div>
+        </div>
+    </div>
+
+    <div id="recap-modal" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-[3000] hidden flex-col px-5 pt-12 pb-8 overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div class="text-[#FFB000] font-black italic text-xl tracking-widest">SUN<span class="text-white text-xs ml-2 tracking-normal uppercase">Итоги месяца</span></div>
+            <div onclick="closeMonthlyRecap()" class="w-10 h-10 bg-[#141414] rounded-full flex items-center justify-center text-xl text-gray-400 cursor-pointer border border-[#1a1a1c]">✕</div>
+        </div>
+        <div id="story-capture-area" class="flex flex-col relative bg-[#0a0a0c] p-6 rounded-[32px] border border-[#1a1a1c] shadow-[0_0_30px_rgba(255,176,0,0.05)] mb-4">
+            <h2 class="text-xl font-black italic leading-tight mb-6 text-gray-200">СЛЕДУЮЩИЙ МЕСЯЦ БУДЕТ ЕЩЕ МОЩНЕЕ! ЛОВИ СВОЙ РЕЗУЛЬТАТ ⚡️</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-[#141414] border border-[#1a1a1c] rounded-[20px] p-5 relative overflow-hidden">
+                    <div class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Изучено</div>
+                    <div id="recap-total" class="text-4xl font-black text-white">0</div>
+                    <div class="absolute bottom-3 right-4 text-3xl opacity-20">📚</div>
+                </div>
+                <div class="bg-gradient-to-br from-[#FFB000]/20 to-[#141414] border border-[#FFB000]/30 rounded-[20px] p-5 relative overflow-hidden">
+                    <div class="text-[#FFB000] text-[10px] font-bold uppercase tracking-widest mb-2">Статус</div>
+                    <div id="recap-percent" class="text-xl font-black italic text-white leading-tight mt-1">ЛУЧШЕ ЧЕМ У 80%</div>
+                    <div class="absolute top-4 right-4 text-2xl drop-shadow-[0_0_10px_rgba(255,176,0,0.8)]">🏆</div>
+                </div>
+            </div>
+            <div class="bg-[#141414] border border-[#1a1a1c] rounded-[20px] p-5 flex items-center justify-between mb-4">
+                <div>
+                    <div class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Твоя главная тема</div>
+                    <div id="recap-top-tag" class="text-xl font-black italic text-white">--</div>
+                </div>
+                <div class="text-4xl">🎯</div>
+            </div>
+            <div class="text-center mt-2 mb-1"><span class="text-[#FFB000] font-black italic text-[10px] tracking-[0.4em] uppercase opacity-80">SUN INFOBUSINESS</span></div>
+        </div>
+        <div class="mt-auto" id="story-btn-container">
+            <div id="story-btn" onclick="generateStory()" class="w-full bg-white text-black text-center font-black py-4 rounded-xl uppercase text-sm tracking-widest cursor-pointer active:scale-95 transition-transform flex items-center justify-center gap-2"><span>✨</span> Создать Итоги</div>
+        </div>
+        <div id="story-result-area" class="hidden flex-col items-center w-full mt-auto">
+            <p class="text-gray-400 text-xs text-center mb-3">Зажми картинку пальцем, чтобы сохранить в галерею 👇</p>
+            <img id="story-preview-img" class="w-full rounded-[32px] shadow-[0_0_40px_rgba(255,176,0,0.15)] mb-6" />
+            <div class="w-full bg-[#141414] border border-[#1a1a1c] rounded-[24px] p-6 pb-8 shadow-2xl">
+                <h3 class="text-center font-black text-white text-lg mb-6">Поделиться</h3>
+                <div class="flex justify-around items-start">
+                    <div onclick="smartShare()" class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-[0_0_15px_rgba(236,72,153,0.3)]">📸</div>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-center">Instagram /<br>Отправить</span>
+                    </div>
+                    <div onclick="closeMonthlyRecap()" class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                        <div class="w-14 h-14 rounded-full bg-[#1a1a1c] border border-gray-700 flex items-center justify-center text-white text-xl opacity-80">✕</div>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Назад</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН БЛОКИРОВКИ (PAYWALL) -->
+    <div id="paywall-screen" class="screen px-5">
+        <div class="flex flex-col items-center justify-center min-h-[90vh] relative z-10 text-center">
+            <!-- Желтое свечение на фоне -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#FFB000] opacity-10 rounded-full blur-[100px] pointer-events-none"></div>
+
+            <h1 class="text-5xl font-black tracking-widest italic mb-2 text-white">SUN</h1>
+            <h2 class="text-xl font-black tracking-widest uppercase text-[#FFB000] mb-8">ДОСТУП ЗАКРЫТ</h2>
+
+            <p class="text-gray-300 text-sm font-medium leading-relaxed mb-10 px-4">
+                Не видим тебя среди активных участников клуба, поэтому скрыли навигацию.<br><br>Вступить можно здесь, если открыто окно продаж:
+            </p>
+
+            <button onclick="tg.openLink('https://pay.kaspi.kz/pay/0o2tyjk1')" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase tracking-widest mb-4 active:scale-95 transition-transform">
+                Вступить в SUN CLUB
+            </button>
+            <button onclick="tg.openTelegramLink('https://t.me/kassenovamb')" class="w-full bg-[#141414] border border-[#1a1a1c] text-white font-bold py-4 rounded-xl uppercase tracking-widest mb-6 active:scale-95 transition-transform">
+                Написать в службу заботы
+            </button>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <div onclick="showScreen('home-screen')" class="nav-item active" id="nav-home"><span class="text-2xl">🏠</span><span class="text-[9px] font-bold uppercase mt-1">Домой</span></div>
+        <div onclick="showScreen('club-screen')" class="nav-item" id="nav-club"><span class="text-2xl">👥</span><span class="text-[9px] font-bold uppercase mt-1">Клуб</span></div>
+        <div onclick="tg.showAlert('В разработке')" class="nav-item"><span class="text-2xl">💬</span><span class="text-[9px] font-bold uppercase mt-1">Чаты</span></div>
+        <div onclick="openFavorites()" class="nav-item" id="nav-fav"><span class="text-2xl">⭐</span><span class="text-[9px] font-bold uppercase mt-1">Топ</span></div>
+        <div onclick="showScreen('profile-screen')" class="nav-item" id="nav-profile"><span class="text-2xl">👤</span><span class="text-[9px] font-bold uppercase mt-1">Профиль</span></div>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand(); tg.setHeaderColor('#000000');
+        const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4MBQNze85Cb2YOXQOIMdsQI-94xxAIp-KuQgYmiHaaXS5besYLMrNwwdFfeeqg1wZKQJ-0wfwnTFm/pub?output=csv&v=" + Date.now();
+        const usersSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4MBQNze85Cb2YOXQOIMdsQI-94xxAIp-KuQgYmiHaaXS5besYLMrNwwdFfeeqg1wZKQJ-0wfwnTFm/pub?gid=1142574267&single=true&output=csv&v=" + Date.now();
+        const apiUrl = "https://script.google.com/macros/s/AKfycbwktmH0Blp_1ICDmc5IIX775qrBMgVzRf0D2prKxDBdA4i8jynS3Xg_3Lnp-U6ajAsBug/exec";
+        
+        let globalData = [], globalUsers = [], currentUserData = null, previousScreen = 'home-screen';
+        let userProgress = JSON.parse(localStorage.getItem('sun_progress')) || {};
+        let userFavorites = JSON.parse(localStorage.getItem('sun_favorites')) || [];
+
+        function logAction(detail) {
+            if (!currentUserData) return;
+            const name = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "User";
+            fetch(`${apiUrl}?action=log&id=${currentUserData.id}&name=${encodeURIComponent(name)}&detail=${encodeURIComponent(detail)}`);
+        }
+
+        Papa.parse(sheetUrl, { download: true, header: false, complete: function(results) {
+            let rows = results.data.slice(1);
+            globalData = rows.map(r => ({ id: r[0], category: r[1] || '', tag: r[2] || '', title: r[3] || '', desc: r[4] || '', img: r[5] || '', link: r[6] || '' })).filter(i => i.id).reverse();
+            renderHomeProgress();
+        }});
+
+        Papa.parse(usersSheetUrl, { download: true, header: false, complete: function(results) {
+            const rows = results.data.slice(1);
+            globalUsers = rows.map(r => ({ id: String(r[0]).trim(), name: String(r[1]).trim() || 'Без имени', status: r[2], expiry: r[3], points: parseInt(r[4]) || 0 })).filter(u => u.id).sort((a, b) => b.points - a.points);
+            let tgUser = tg.initDataUnsafe.user;
+            
+            // Для тестов на ПК (оставь свой ID, чтобы тебя всегда пускало)
+            if (!tgUser) tgUser = { id: "412753295", first_name: "Бекболат" };
+
+            let hasAccess = false; // По умолчанию доступ закрыт для всех
+
+            if (tgUser) { 
+                currentUserData = globalUsers.find(u => u.id == tgUser.id); 
+                
+                // Проверяем, есть ли человек в базе и не истекла ли подписка
+                if (currentUserData) {
+                    const parts = currentUserData.expiry.split('.');
+                    if(parts.length === 3) {
+                        const expiryDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        const diffDays = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                        if (diffDays > 0) hasAccess = true; // Даем зеленый свет!
+                    }
+                }
+
+                document.getElementById('profile-name').innerText = tgUser.first_name || "Ученик"; 
+                updateSubscriptionUI(); 
+            }
+            renderLeaderboard();
+
+            // ⚡️ ГЛАВНЫЙ РОУТИНГ ⚡️
+            if (hasAccess) {
+                showScreen('home-screen'); // Пускаем внутрь
+            } else {
+                showScreen('paywall-screen'); // Выкидываем на экран ошибки
+            }
+        }});
+
+        function updateSubscriptionUI() {
+            const titleEl = document.getElementById('sub-title'), daysEl = document.getElementById('sub-days'), pointsEl = document.getElementById('user-points'), rankEl = document.getElementById('user-rank');
+            if (currentUserData) {
+                const parts = currentUserData.expiry.split('.');
+                if(parts.length === 3) {
+                    const expiryDate = new Date(parts[2], parts[1] - 1, parts[0]), diffDays = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                    if (diffDays > 0) { titleEl.innerText = "SUN PASS АКТИВЕН"; daysEl.innerText = `Осталось ${diffDays} дней`; }
+                    else { titleEl.innerText = "ДОСТУП ИСТЕК"; daysEl.innerText = "Продлите подписку"; titleEl.style.color = '#FFB000'; }
+                }
+                pointsEl.innerHTML = `<span class="text-lg">🏆</span> ${currentUserData.points} баллов`;
+                const myIndex = globalUsers.findIndex(u => u.id == currentUserData.id);
+                rankEl.innerText = `Твое место: ${myIndex !== -1 ? myIndex + 1 : '--'}`;
+            }
+        }
+
+        function renderLeaderboard() {
+            const podiumEl = document.getElementById('top-3-podium'); let podiumHtml = '';
+            const u1 = globalUsers[0], u2 = globalUsers[1], u3 = globalUsers[2];
+            
+            if (u2) podiumHtml += `<div class="flex flex-col items-center justify-end w-1/3 pb-0"><div class="relative mb-2"><div class="w-12 h-12 rounded-full border border-gray-400 bg-[#141414] flex items-center justify-center text-lg z-10 relative">🥈</div><div class="absolute -bottom-1 -right-1 bg-gray-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded border border-black z-20">2</div></div><div class="text-white font-black text-[9px] mb-1 truncate w-full text-center uppercase px-1">${u2.name}</div><div class="text-gray-400 text-[9px] font-bold mb-2">${u2.points} Б</div><div class="w-10/12 h-10 bg-gradient-to-t from-gray-400/20 to-transparent rounded-t-lg border-t border-gray-400/30"></div></div>`; else podiumHtml += `<div class="w-1/3"></div>`;
+            if (u1) podiumHtml += `<div class="flex flex-col items-center justify-end w-1/3 z-10"><div class="relative mb-2"><div class="w-16 h-16 rounded-full border-2 border-[#FFB000] bg-[#141414] flex items-center justify-center text-2xl z-10 relative drop-shadow-[0_0_15px_rgba(255,176,0,0.3)]">👑</div><div class="absolute -bottom-1 -right-1 bg-[#FFB000] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black z-20">1</div></div><div class="text-[#FFB000] font-black text-[11px] mb-1 truncate w-full text-center uppercase px-1">${u1.name}</div><div class="text-white text-[10px] font-bold mb-2">${u1.points} Б</div><div class="w-11/12 h-14 bg-gradient-to-t from-[#FFB000]/30 to-transparent rounded-t-lg border-t border-[#FFB000]/50"></div></div>`; else podiumHtml += `<div class="w-1/3"></div>`;
+            if (u3) podiumHtml += `<div class="flex flex-col items-center justify-end w-1/3 pb-0"><div class="relative mb-2"><div class="w-10 h-10 rounded-full border border-orange-700 bg-[#141414] flex items-center justify-center text-sm z-10 relative">🥉</div><div class="absolute -bottom-1 -right-1 bg-orange-700 text-white text-[8px] font-black px-1.5 py-0.5 rounded border border-black z-20">3</div></div><div class="text-white font-black text-[9px] mb-1 truncate w-full text-center uppercase px-1">${u3.name}</div><div class="text-gray-400 text-[9px] font-bold mb-2">${u3.points} Б</div><div class="w-10/12 h-6 bg-gradient-to-t from-orange-700/20 to-transparent rounded-t-lg border-t border-orange-700/30"></div></div>`; else podiumHtml += `<div class="w-1/3"></div>`;
+            
+            podiumEl.innerHTML = podiumHtml;
+
+            const listEl = document.getElementById('leaderboard-list'); let listHtml = '';
+            if (globalUsers.length <= 3) { listHtml = `<div class="bg-[#141414] border border-[#1a1a1c] rounded-[16px] p-6 flex flex-col items-center justify-center text-center mt-2 opacity-50"><span class="text-2xl mb-2 grayscale">🥷</span><span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Здесь появятся новые участники</span></div>`; }
+            else { 
+                for (let i = 3; i < globalUsers.length; i++) { 
+                    const u = globalUsers[i], isMe = currentUserData && u.id == currentUserData.id; 
+                    listHtml += `<div class="bg-[#141414] border ${isMe ? 'border-[#FFB000]' : 'border-[#1a1a1c]'} rounded-[16px] p-4 flex items-center justify-between"><div class="flex items-center gap-4"><div class="text-gray-600 font-black text-sm w-5 text-center">${i + 1}</div><div class="w-8 h-8 rounded-full bg-[#1a1a1c] flex items-center justify-center text-xs">👤</div><div class="font-black uppercase italic text-xs ${isMe ? 'text-[#FFB000]' : 'text-gray-300'}">${u.name} ${isMe ? '(ТЫ)' : ''}</div></div><div class="text-white font-black text-xs tracking-wider">${u.points} <span class="text-gray-600 text-[9px]">Б</span></div></div>`; 
+                } 
+            }
+            listEl.innerHTML = listHtml;
+        }
+
+        function openMonthlyRecap() {
+            logAction("Открыл Итоги Месяца");
+            const months = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+            document.getElementById('recap-month-text').innerText = `Итоги ${months[new Date().getMonth()]}`;
+            let totalDone = 0, tagCounts = {};
+            globalData.forEach(item => { if (userProgress[item.id] == 100) { totalDone++; tagCounts[item.tag || 'Разное'] = (tagCounts[item.tag || 'Разное'] || 0) + 1; }});
+            let topTag = "Пока нет данных", maxCount = 0;
+            for (const [tag, count] of Object.entries(tagCounts)) { if (count > maxCount) { maxCount = count; topTag = tag; } }
+            document.getElementById('recap-total').innerText = totalDone;
+            document.getElementById('recap-top-tag').innerText = topTag;
+            let percentText = "НЕТ ДАННЫХ";
+            if (currentUserData && globalUsers.length > 1) { const myIndex = globalUsers.findIndex(u => u.id == currentUserData.id); if (myIndex === 0) percentText = "ТЫ ТОП #1 👑"; else if (myIndex > 0) percentText = `ЛУЧШЕ ЧЕМ У ${Math.round(((globalUsers.length - (myIndex + 1)) / globalUsers.length) * 100)}%`; }
+            document.getElementById('recap-percent').innerText = percentText;
+            document.getElementById('story-capture-area').classList.remove('hidden'); document.getElementById('story-btn-container').classList.remove('hidden');
+            document.getElementById('story-result-area').classList.add('hidden'); document.getElementById('recap-modal').classList.remove('hidden'); document.getElementById('recap-modal').classList.add('flex');
+            tg.BackButton.show();
+        }
+
+        function generateStory() {
+            logAction("Сгенерировал Итоги Месяца");
+            const btn = document.getElementById('story-btn'); btn.innerHTML = '⏳ Генерируем магию...'; btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+            html2canvas(document.getElementById('story-capture-area'), { backgroundColor: '#0a0a0c', scale: 3, useCORS: true }).then(canvas => {
+                window.generatedStoryData = canvas.toDataURL('image/png'); document.getElementById('story-preview-img').src = window.generatedStoryData;
+                document.getElementById('story-capture-area').classList.add('hidden'); document.getElementById('story-btn-container').classList.add('hidden'); document.getElementById('story-result-area').classList.remove('hidden');
+                btn.innerHTML = '<span>✨</span> Создать Итоги'; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            });
+        }
+
+        async function smartShare() {
+            logAction("Поделился Итогами");
+            if(!window.generatedStoryData) return;
+            try {
+                const res = await fetch(window.generatedStoryData), blob = await res.blob(), file = new File([blob], "sun_story.png", { type: "image/png" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Мои итоги в SUN' });
+                else tg.showAlert('Зажми картинку пальцем, чтобы сохранить её!');
+            } catch (err) { tg.showAlert('Зажми картинку пальцем на экране!'); }
+        }
+
+        function closeMonthlyRecap() { document.getElementById('recap-modal').classList.add('hidden'); document.getElementById('recap-modal').classList.remove('flex'); if (document.querySelector('.screen.active').id === 'home-screen') tg.BackButton.hide(); }
+
+        function showScreen(screenId) {
+            const currentActive = document.querySelector('.screen.active');
+            if (currentActive && currentActive.id !== screenId && (screenId === 'detail-screen' || screenId === 'leaderboard-screen')) previousScreen = currentActive.id;
+            
+            if (screenId === 'profile-screen') logAction("Зашел в профиль"); if (screenId === 'leaderboard-screen') logAction("Зашел в рейтинг"); if (screenId === 'club-screen') logAction("Зашел в Клуб");
+            
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            if(screenId === 'home-screen') document.getElementById('nav-home').classList.add('active');
+            if(screenId === 'club-screen') document.getElementById('nav-club').classList.add('active');
+            if(screenId === 'favorites-screen') document.getElementById('nav-fav').classList.add('active');
+            if(screenId === 'profile-screen') document.getElementById('nav-profile').classList.add('active');
+            document.querySelector('.nav-bar').style.display = (screenId === 'detail-screen' || screenId === 'leaderboard-screen' || screenId === 'paywall-screen') ? 'none' : 'flex';
+            if (screenId === 'home-screen') tg.BackButton.hide(); else tg.BackButton.show();
+        }
+
+        function renderHomeProgress(){let t={};globalData.forEach(e=>{const a=e.tag||"Разное";t[a]||(t[a]={total:0,done:0}),t[a].total++,100==userProgress[e.id]&&t[a].done++});let e=Object.keys(t).map(e=>{let a=Math.round(t[e].done/t[e].total*100);return`<div class="progress-card"><div class="text-[10px] font-black mb-3 truncate uppercase text-gray-500 italic tracking-widest">${e}</div><div class="flex justify-between text-[11px] font-black mb-1.5 uppercase"><span>Прогресс</span><span>${a}%</span></div><div class="w-full h-1 bg-[#222] rounded-full overflow-hidden"><div class="progress-fill" style="width:${a}%"></div></div></div>`}).join("");document.getElementById("home-progress-list").innerHTML=e}
+        function openCategory(t,e){ logAction("Открыл категорию: " + e); document.getElementById("subcat-title").innerText=e;const a=globalData.filter(e=>e.category.toLowerCase().includes(t.toLowerCase()));if(0===a.length)document.getElementById("subcat-list").innerHTML='<p class="text-center text-gray-500 mt-20 font-black uppercase italic">Пусто</p>';else{const e=[...new Set(a.map(t=>t.tag||"Разное"))];document.getElementById("subcat-list").innerHTML=e.map(e=>{const n=a.filter(t=>(t.tag||"Разное")===e),s=n.filter(t=>100==userProgress[t.id]).length,r=Math.round(s/n.length*100);return`<div onclick="openSubcategory('${t}', '${e}')" class="bg-[#141414] border border-[#1a1a1c] rounded-[20px] p-4 flex items-center justify-between mb-4 cursor-pointer active:scale-95 transition-transform"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-[#FFB000]/10 rounded-xl flex items-center justify-center text-2xl border border-yellow-500/20">📁</div><div><h3 class="text-white font-black uppercase italic leading-tight">${e}</h3><p class="text-gray-500 text-[10px] font-bold uppercase mt-1">Материалов: ${n.length}</p></div></div><div class="text-[#FFB000] font-black text-sm">${r}%</div></div>`}).join("")}showScreen("subcat-screen")}
+        function openSubcategory(t,e){document.getElementById("list-title").innerText=e;const a=globalData.filter(a=>a.category.toLowerCase().includes(t.toLowerCase())&&(a.tag||"Разное")===e);document.getElementById("items-list").innerHTML=a.map(t=>`<div onclick="openDetail('${t.id}')" class="card-premium rounded-[24px] overflow-hidden relative mb-6 cursor-pointer active:scale-95 transition-all"><div class="h-48 bg-cover bg-center" style="background-image: url('${t.img}')"></div><div class="p-5"><span class="tag-sun">#${t.tag}</span><h3 class="text-lg font-black italic uppercase mt-2">${t.title}</h3></div></div>`).join("");showScreen("list-screen")}
+        function openFavorites(){ logAction("Зашел в Избранное"); const t=document.getElementById("favorites-list"),e=globalData.filter(t=>userFavorites.includes(t.id));0===e.length?t.innerHTML='<div class="text-center mt-32"><span class="text-6xl mb-4 block">⭐</span><p class="text-gray-500 font-black uppercase italic">Пусто</p></div>':t.innerHTML=e.map(t=>`<div onclick="openDetail('${t.id}')" class="card-premium rounded-[24px] overflow-hidden relative mb-6"><div class="h-48 bg-cover bg-center" style="background-image: url('${t.img}')"></div><div class="p-5"><span class="tag-sun">#${t.tag}</span><h3 class="text-lg font-black italic uppercase mt-2">${t.title}</h3></div></div>`).join("");showScreen("favorites-screen")}
+        function toggleFavorite(t){const e=userFavorites.indexOf(t);e>-1?userFavorites.splice(e,1):userFavorites.push(t);localStorage.setItem("sun_favorites",JSON.stringify(userFavorites));openDetail(t);"favorites-screen"===previousScreen&&openFavorites()}
+        
+        function openDetail(id) {
+            const i = globalData.find(d => d.id == id); logAction("Изучает материал: " + i.title);
+            document.getElementById('detail-img').style.backgroundImage = `url('${i.img}')`; document.getElementById('detail-title').innerText = i.title; document.getElementById('detail-desc').innerText = i.desc;
+            const favBtn = document.getElementById('fav-btn'); favBtn.innerHTML = userFavorites.includes(id) ? '⭐' : '☆'; favBtn.style.color = userFavorites.includes(id) ? '#FFB000' : '#ffffff'; favBtn.onclick = () => toggleFavorite(id);
+            const watchBtn = document.getElementById('watch-btn'), summaryBtn = document.getElementById('summary-btn'), isBook = i.category.toLowerCase().includes('книг');
+            if (isBook) { watchBtn.className = 'btn-main w-full'; summaryBtn.style.display = 'none'; } else { watchBtn.className = 'btn-main w-2/3'; summaryBtn.style.display = 'flex'; }
+            let currentStatus = userProgress[id] || 0;
+            
+            function updateBtnVisuals() {
+                if (isBook) { if (currentStatus === 0) watchBtn.innerText = 'Прочитать'; else if (currentStatus === 50) watchBtn.innerText = '📖 Читаю...'; else watchBtn.innerText = '✅ Прочитано'; }
+                else { if (currentStatus === 0) watchBtn.innerText = 'Посмотреть'; else if (currentStatus === 50) watchBtn.innerText = '👀 Смотрю...'; else watchBtn.innerText = '✅ Просмотрено'; }
+                if (currentStatus === 100) { watchBtn.style.background = '#FFB000'; watchBtn.style.color = '#000'; } else { watchBtn.style.background = '#fff'; watchBtn.style.color = '#000'; }
+            }
+            updateBtnVisuals();
+            
+            watchBtn.onclick = () => {
+                let pointsToAdd = 0; if (currentStatus === 0) { currentStatus = 50; } else if (currentStatus === 50) { currentStatus = 100; pointsToAdd = isBook ? 50 : 20; }
+                userProgress[id] = currentStatus; localStorage.setItem('sun_progress', JSON.stringify(userProgress)); renderHomeProgress(); updateBtnVisuals();
+                
+                if (pointsToAdd > 0 && currentUserData) {
+                    fetch(`${apiUrl}?action=points&id=${currentUserData.id}&points=${pointsToAdd}`).then(r => r.text()).then(res => { 
+                        currentUserData.points += pointsToAdd; 
+                        updateSubscriptionUI(); 
+                        renderLeaderboard(); 
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); 
+                    });
+                }
+                const url = i.link.trim(); if (url.includes('t.me/')) tg.openTelegramLink(url); else tg.openLink(url);
+            };
+            showScreen('detail-screen');
+        }
+        tg.BackButton.onClick(() => { const active = document.querySelector('.screen.active').id; if (active === 'detail-screen' || active === 'leaderboard-screen') showScreen(previousScreen); else if (active === 'list-screen') showScreen('subcat-screen'); else if (document.getElementById('recap-modal').classList.contains('flex')) closeMonthlyRecap(); else showScreen('home-screen'); });
+    </script>
+</body>
+</html>
